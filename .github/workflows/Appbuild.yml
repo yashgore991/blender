@@ -1,4 +1,4 @@
-name: Full Blender Android Build
+name: Build Full Blender Android APK
 
 on:
   workflow_dispatch:
@@ -8,43 +8,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Blender (Official)
-      uses: actions/checkout@v4
-      with:
-        repository: blender/blender
-        fetch-depth: 1
-        submodules: recursive
-
     - name: Install Dependencies
       run: |
         sudo apt update
-        sudo apt install -y git cmake ninja-build \
-          python3-dev zip wget pkg-config openjdk-17-jdk \
+        sudo apt install -y \
+          git cmake ninja-build wget unzip zip \
+          python3-dev pkg-config openjdk-17-jdk \
           libx11-dev libxi-dev libgl1-mesa-dev \
           libxcursor-dev libxrandr-dev libxinerama-dev libxxf86vm-dev
 
-    - name: Setup Android SDK and NDK
+    - name: Setup Android SDK & NDK
       uses: android-actions/setup-android@v3
       with:
         sdk-version: 34
         ndk-version: 25.2.9519653
 
-    - name: Clone Full Blender (with LFS + Submodules)
+    - name: Clone Official Blender Repo (Skip broken LFS)
       run: |
-        git lfs install
         git clone https://github.com/blender/blender.git
         cd blender
+        git lfs install
+        GIT_LFS_SKIP_SMUDGE=1 git lfs pull
         git submodule update --init --recursive
 
-    - name: Configure Blender for Android (Java + C++ + Python)
+    - name: Configure Full Android Build (with C++/Java/Python)
       run: |
         cd blender
-        mkdir build-android && cd build-android
+        mkdir -p build-android
+        cd build-android
+
         cmake .. \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
           -DANDROID_ABI=arm64-v8a \
           -DANDROID_PLATFORM=android-24 \
-          -DCMAKE_BUILD_TYPE=Debug \
           -DWITH_PYTHON=ON \
           -DWITH_CYCLES=ON \
           -DWITH_EEVEE=ON \
@@ -60,12 +58,12 @@ jobs:
           -DWITH_GHOST_SDL=ON \
           -DWITH_INSTALL_PORTABLE=ON
 
-    - name: Build Blender APK
+    - name: Build Blender
       run: |
         cd blender/build-android
-        make -j$(nproc)
+        ninja
 
-    - name: Upload Blender APK
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: blender-full-android-apk
