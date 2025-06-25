@@ -1,4 +1,4 @@
-name: Build Full Blender Android APK
+name: Full Blender Android Build
 
 on:
   workflow_dispatch:
@@ -8,11 +8,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Blender Fork
+    - name: Checkout Blender (Official)
       uses: actions/checkout@v4
       with:
-        repository: yashgore/blender  # ✅ Replace with your GitHub fork
+        repository: blender/blender
         fetch-depth: 1
+        submodules: recursive
 
     - name: Install Dependencies
       run: |
@@ -22,20 +23,20 @@ jobs:
           libx11-dev libxi-dev libgl1-mesa-dev \
           libxcursor-dev libxrandr-dev libxinerama-dev libxxf86vm-dev
 
-    - name: Setup Android SDK/NDK
+    - name: Setup Android SDK and NDK
       uses: android-actions/setup-android@v3
       with:
         sdk-version: 34
         ndk-version: 25.2.9519653
 
-    - name: Clone Full Blender with LFS and Submodules
+    - name: Clone Full Blender (with LFS + Submodules)
       run: |
         git lfs install
-        git clone https://github.com/yashgore/blender.git
+        git clone https://github.com/blender/blender.git
         cd blender
         git submodule update --init --recursive
 
-    - name: Configure Full Blender for Android (Java + C++ + Python)
+    - name: Configure Blender for Android (Java + C++ + Python)
       run: |
         cd blender
         mkdir build-android && cd build-android
@@ -64,8 +65,8 @@ jobs:
         cd blender/build-android
         make -j$(nproc)
 
-    - name: Upload Full APK
+    - name: Upload Blender APK
       uses: actions/upload-artifact@v4
       with:
-        name: full-blender-apk
+        name: blender-full-android-apk
         path: blender/build-android/bin/*.apk
