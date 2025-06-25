@@ -8,27 +8,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Blender
-      uses: actions/checkout@v3
+    - name: Checkout your repository
+      uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
         sudo apt update
-        sudo apt install -y git cmake ninja-build python3 zip wget pkg-config openjdk-17-jdk
+        sudo apt install -y git cmake ninja-build python3-dev zip wget pkg-config openjdk-17-jdk
 
-    - name: Setup Android SDK + NDK
+    - name: Set up Android SDK + NDK
       uses: android-actions/setup-android@v3
       with:
-        sdk-version: 33
+        sdk-version: 34
         ndk-version: 25.2.9519653
 
-    - name: Clone Blender
+    - name: Clone Blender source
       run: |
         git clone https://github.com/blender/blender.git
         cd blender
         git submodule update --init --recursive
 
-    - name: Configure CMake (Modeling Only)
+    - name: Configure Blender build for Android (Modeling Only)
       run: |
         cd blender
         mkdir build-android && cd build-android
@@ -39,22 +39,24 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DWITH_PYTHON=OFF \
           -DWITH_CYCLES=OFF \
-          -DWITH_VSE=OFF \
           -DWITH_COMPOSITOR=OFF \
+          -DWITH_VSE=OFF \
           -DWITH_SCULPT_MODE=OFF \
+          -DWITH_SIMULATION=OFF \
           -DWITH_MOD_FLUID=OFF \
           -DWITH_IMAGE_WEBP=OFF \
           -DWITH_OPENVDB=OFF \
-          -DWITH_GHOST_SDL=ON \
-          -DWITH_GHOST_X11=OFF
+          -DWITH_OPENCOLLADA=OFF \
+          -DWITH_GHOST_X11=OFF \
+          -DWITH_GHOST_SDL=ON
 
-    - name: Build Blender
+    - name: Build Blender APK
       run: |
         cd blender/build-android
         make -j$(nproc)
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v3
+    - name: Upload Built APK Artifact
+      uses: actions/upload-artifact@v4
       with:
         name: blender-modeling-apk
         path: blender/build-android/bin/*.apk
