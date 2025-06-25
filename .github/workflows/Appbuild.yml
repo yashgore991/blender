@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout your repository
+    - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Install dependencies
@@ -16,19 +16,21 @@ jobs:
         sudo apt update
         sudo apt install -y git cmake ninja-build python3-dev zip wget pkg-config openjdk-17-jdk
 
-    - name: Set up Android SDK + NDK
+    - name: Set up Android SDK and NDK
       uses: android-actions/setup-android@v3
       with:
         sdk-version: 34
         ndk-version: 25.2.9519653
 
-    - name: Clone Blender source
+    - name: Clone Blender (Skip LFS to avoid missing file errors)
       run: |
-        git clone https://github.com/blender/blender.git
+        git clone --depth=1 https://github.com/blender/blender.git
         cd blender
+        git lfs install
+        git lfs uninstall
         git submodule update --init --recursive
 
-    - name: Configure Blender build for Android (Modeling Only)
+    - name: Configure CMake for Android (Modeling Only)
       run: |
         cd blender
         mkdir build-android && cd build-android
@@ -50,12 +52,12 @@ jobs:
           -DWITH_GHOST_X11=OFF \
           -DWITH_GHOST_SDL=ON
 
-    - name: Build Blender APK
+    - name: Build Blender
       run: |
         cd blender/build-android
         make -j$(nproc)
 
-    - name: Upload Built APK Artifact
+    - name: Upload Blender APK
       uses: actions/upload-artifact@v4
       with:
         name: blender-modeling-apk
